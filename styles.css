@@ -1,0 +1,102 @@
+ /* General Body Styling */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Nicer font */
+    background-color: #f4f7f6; /* Light grey background */
+    margin: 0;
+    padding: 20px;
+    color: #333; /* Default text color */
+    line-height: 1.6;
+}
+
+/* Main App Container */
+#app {
+    max-width: 600px; /* Limit width for better readability */
+    margin: 40px auto; /* Center the container */
+    background-color: #ffffff; /* White background for the app */
+    padding: 30px;
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+/* Heading Styling */
+h1 {
+    text-align: center;
+    color: #2c3e50; /* Dark blue-grey color */
+    margin-top: 0;
+    margin-bottom: 30px;
+}
+
+/* Form Styling */
+form {
+    display: flex; /* Align input and button horizontally */
+    margin-bottom: 25px;
+    gap: 10px; /* Add space between input and button */
+}
+
+input[type="text"] {
+    flex-grow: 1; /* Allow input to take up available space */
+    padding: 12px 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease-in-out;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: #42b983; /* Highlight with Vue green on focus */
+}
+
+button[type="submit"] {
+    padding: 12px 20px;
+    background-color: #42b983; /* Vue green */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: background-color 0.2s ease-in-out;
+}
+
+button[type="submit"]:hover {
+    background-color: #36a374; /* Darker green on hover */
+}
+
+/* Task List Styling */
+ul {
+    list-style: none; /* Remove default bullet points */
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee; /* Separator line */
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex; /* Allows for better alignment if you add more elements later */
+    align-items: center; /* Vertically center text */
+    word-break: break-word; /* Prevent long tasks from overflowing */
+}
+
+li:last-child {
+    border-bottom: none; /* Remove border from the last item */
+}
+
+li:hover {
+    background-color: #f9f9f9; /* Slight grey background on hover */
+}
+
+/* Styling for Completed Tasks */
+.completed {
+    text-decoration: line-through;
+    color: #aaa; /* Lighter grey for completed tasks */
+    /* Optional: Add a subtle fade */
+    /* opacity: 0.7; */
+}
+
+/* Optional: Style completed task text on hover differently */
+.completed:hover {
+   background-color: #f0f0f0; /* Slightly different hover for completed */
+}

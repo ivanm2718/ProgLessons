@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Vue Task App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="app">
+        <h1>My Tasks</h1>
+
+        <form @submit.prevent="addTask">
+            <input type="text" v-model="newTaskName" placeholder="Add a new task">
+            <button type="submit">Add Task</button>
+        </form>
+
+        <ul>
+            <li v-for="task in tasks" @click="toggleComplete(task)" :key="task.id":class="{ completed: task.completed }">
+                {{ task.name }}
+            </li>
+        </ul>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+        // Vue code goes here!
+        const { createApp } = Vue; // Get the createApp function from the global Vue object
+
+createApp({
+    // data(): Returns an object containing the initial data for our app
+    data() {
+        return {
+            // Our list of tasks. Start with a couple of examples.
+            tasks: [
+                { id: 1, name: 'Learn HTML', completed: true },
+                { id: 2, name: 'Learn CSS', completed: true },
+                { id: 3, name: 'Learn JavaScript', completed: false },
+                { id: 4, name: 'Learn Vue.js', completed: false }
+            ],
+            // This will be linked to the input field using v-model
+            newTaskName: '',
+        };
+    },
+    // methods: Contains the functions our app can call
+    methods: {
+        addTask() {
+        },
+
+        toggleComplete(task) {
+        
+        },
+        
+    }
+}).mount('#app'); // Tell Vue to take control of the HTML element with the id="app"
+    </script>
+
+</body>
+</html>
