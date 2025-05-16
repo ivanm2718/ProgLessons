@@ -12,50 +12,189 @@
         <h1>My Tasks</h1>
 
         <form @submit.prevent="addTask">
-            <input type="text" v-model="newTaskName" placeholder="Add a new task">
+            <input type="text" v-model="newTaskName" placeholder="Add a new task (Press Enter to add)">
             <button type="submit">Add Task</button>
         </form>
 
-        <ul>
-            <li v-for="task in tasks" @click="toggleComplete(task)" :key="task.id":class="{ completed: task.completed }">
-                {{ task.name }}
+        <div class="controls">
+            <input type="text" v-model="searchTerm" placeholder="Search tasks...">
+            <button @click="toggleFilter">
+                {{ showOnlyUncompleted ? 'Show All Tasks' : 'Show Uncompleted Tasks' }}
+            </button>
+        </div>
+
+
+        <ul v-if="filteredTasks.length > 0">
+             <li v-for="task in filteredTasks" :key="task.id" :class="{ completed: task.completed }">
+                <span class="task-name">{{ task.name }}</span>
+                <div class="task-buttons">
+                     <button class="btn-toggle" @click="toggleComplete(task)">
+                        {{ task.completed ? 'Mark Uncompleted' : 'Mark Completed' }}
+                    </button>
+                    <button class="btn-update" @click="updateTask(task)">Update</button>
+                    <button class="btn-delete" @click="deleteTask(task.id)">Delete</button>
+                </div>
             </li>
         </ul>
+
+        <p v-if="filteredTasks.length === 0" class="no-tasks">No tasks available.</p>
+
+
+        <div v-if="showUpdateForm" class="task-form update-form">
+            <h3>Update Task</h3>
+            <input
+                type="text"
+                v-model="updatedTaskName"
+                placeholder="Task Name"
+                @keydown.enter.prevent="saveUpdatedTask"
+                ref="updateInput" >
+            <button class="btn-save-update" @click="saveUpdatedTask">Save Update</button>
+            <button class="btn-cancel" @click="cancelUpdate">Cancel</button>
+        </div>
 
     </div>
 
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
     <script>
-        // Vue code goes here!
-        const { createApp } = Vue; // Get the createApp function from the global Vue object
+        const { createApp, nextTick } = Vue; // Get createApp and nextTick
 
-createApp({
-    // data(): Returns an object containing the initial data for our app
-    data() {
-        return {
-            // Our list of tasks. Start with a couple of examples.
-            tasks: [
-                { id: 1, name: 'Learn HTML', completed: true },
-                { id: 2, name: 'Learn CSS', completed: true },
-                { id: 3, name: 'Learn JavaScript', completed: false },
-                { id: 4, name: 'Learn Vue.js', completed: false }
-            ],
-            // This will be linked to the input field using v-model
-            newTaskName: '',
-        };
-    },
-    // methods: Contains the functions our app can call
-    methods: {
-        addTask() {
-        },
+        createApp({
+            // data(): Returns an object containing the initial data for our app
+            data() {
+                return {
+                    tasks: [
+                        { id: 1, name: 'Learn HTML', completed: true },
+                        { id: 2, name: 'Learn CSS', completed: true },
+                        { id: 3, name: 'Learn JavaScript', completed: false },
+                        { id: 4, name: 'Learn Vue.js', completed: false }
+                    ],
+                    newTaskName: '',
+                    idCounter: 5, // Set id for next task to next available one
+                    showUpdateForm: false,
+                    currentTaskId: null, // Store the ID of the task being updated
+                    updatedTaskName: '',
+                    showOnlyUncompleted: false, // Filter state
+                    searchTerm: '' // Search term
+                };
+            },
+            // computed: Properties that automatically update when their dependencies change
+            computed: {
+                filteredTasks() {
+                    let filtered = this.tasks;
 
-        toggleComplete(task) {
-        
-        },
-        
-    }
-}).mount('#app'); // Tell Vue to take control of the HTML element with the id="app"
+                    // Apply "Show Uncompleted" filter
+                    if (this.showOnlyUncompleted) {
+                        filtered = filtered.filter(task => !task.completed);
+                    }
+
+                    // Apply search filter
+                    if (this.searchTerm.trim() !== '') {
+                        const lowerCaseSearchTerm = this.searchTerm.toLowerCase();
+                        filtered = filtered.filter(task =>
+                            task.name.toLowerCase().includes(lowerCaseSearchTerm)
+                        );
+                    }
+
+                    return filtered;
+                }
+            },
+            // methods: Contains the functions our app can call
+            methods: {
+                addTask() {
+                    // Basic check: Don't add empty tasks
+                    if (this.newTaskName.trim() === '') {
+                        return; // Stop the function here
+                    }
+
+                    // Create a new task object
+                    const newTask = {
+                        id: this.idCounter++, // Set id to current counter, then increment it
+                        name: this.newTaskName.trim(), // Trim whitespace
+                        completed: false // New tasks are not completed initially
+                    };
+
+                    // Add the new task to our 'tasks' array
+                    this.tasks.push(newTask);
+
+                    // Clear the input field for the next task
+                    this.newTaskName = '';
+                },
+
+                toggleComplete(task) {
+                    task.completed = !task.completed;
+                },
+
+                deleteTask(taskId) {
+                    // Ensure update form is closed before deleting
+                    this.showUpdateForm = false;
+                    this.currentTaskId = null;
+                    this.updatedTaskName = '';
+                    // Filter out the task with the given ID
+                    this.tasks = this.tasks.filter(task => task.id !== taskId);
+                },
+
+                updateTask(task) {
+                    // Set the details for the update form
+                    this.updatedTaskName = task.name;
+                    this.currentTaskId = task.id;
+                    this.showUpdateForm = true;
+
+                    // Use nextTick to wait for the DOM update, then focus the input
+                    nextTick(() => {
+                         if(this.$refs.updateInput) { // Check if ref exists
+                            this.$refs.updateInput.focus();
+                         }
+                    });
+                },
+
+                saveUpdatedTask() {
+                    if (this.updatedTaskName.trim() === '' || this.currentTaskId === null) {
+                        this.cancelUpdate(); // Cancel if name is empty or no task selected
+                        return; // Exit the function
+                    }
+
+                    // Find the index of the task to update
+                    const taskIndex = this.tasks.findIndex(task => task.id === this.currentTaskId);
+
+                    if (taskIndex !== -1) {
+                        // Update the task name
+                        this.tasks[taskIndex].name = this.updatedTaskName.trim();
+                    }
+
+                    // Hide the form and reset state
+                    this.cancelUpdate();
+                },
+
+                cancelUpdate() {
+                    // Hide form and clear update-related data
+                    this.showUpdateForm = false;
+                    this.updatedTaskName = '';
+                    this.currentTaskId = null;
+                },
+
+                toggleFilter() {
+                    // Toggle the filter state
+                    this.showOnlyUncompleted = !this.showOnlyUncompleted;
+                },
+
+                handleEscKey(event) {
+                    // Close update form if Escape key is pressed and form is visible
+                    if (event.key === 'Escape' && this.showUpdateForm) {
+                        this.cancelUpdate();
+                    }
+                }
+            },
+            // Lifecycle Hooks
+            mounted() {
+                // Add keyboard listener when the component is mounted
+                window.addEventListener('keydown', this.handleEscKey);
+            },
+            beforeUnmount() { // Use beforeUnmount in Vue 3
+                // Remove keyboard listener when the component is about to be unmounted
+                window.removeEventListener('keydown', this.handleEscKey);
+            }
+        }).mount('#app'); // Tell Vue to take control of the HTML element with the id="app"
     </script>
 
 </body>

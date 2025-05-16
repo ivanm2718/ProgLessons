@@ -1,4 +1,4 @@
- /* General Body Styling */
+/* General Body Styling */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Nicer font */
     background-color: #f4f7f6; /* Light grey background */
@@ -29,7 +29,7 @@ h1 {
 /* Form Styling */
 form {
     display: flex; /* Align input and button horizontally */
-    margin-bottom: 25px;
+    margin-bottom: 15px; /* Reduced margin */
     gap: 10px; /* Add space between input and button */
 }
 
@@ -47,37 +47,66 @@ input[type="text"]:focus {
     border-color: #42b983; /* Highlight with Vue green on focus */
 }
 
-button[type="submit"] {
-    padding: 12px 20px;
-    background-color: #42b983; /* Vue green */
-    color: white;
+button { /* General button styling for consistency */
+    padding: 10px 15px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: bold;
-    transition: background-color 0.2s ease-in-out;
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+    white-space: nowrap; /* Prevent text wrapping */
 }
 
-button[type="submit"]:hover {
+button:hover {
+    opacity: 0.9;
+}
+
+button[type="submit"],
+.btn-save-update { /* Add Task and Save Update button styling */
+    background-color: #42b983; /* Vue green */
+    color: white;
+    font-weight: bold;
+}
+button[type="submit"]:hover,
+.btn-save-update:hover {
     background-color: #36a374; /* Darker green on hover */
 }
+
+/* Controls Bar (Search & Filter) */
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.controls input[type="text"] {
+    flex-grow: 1; /* Take available space */
+}
+
+.controls button {
+    background-color: #5a6268; /* Dark grey */
+    color: white;
+}
+.controls button:hover {
+    background-color: #4a4f54;
+}
+
 
 /* Task List Styling */
 ul {
     list-style: none; /* Remove default bullet points */
     padding: 0;
-    margin: 0;
+    margin: 0 0 20px 0; /* Add margin bottom */
 }
 
 li {
     padding: 12px 15px;
     border-bottom: 1px solid #eee; /* Separator line */
-    cursor: pointer;
     transition: background-color 0.2s ease;
-    display: flex; /* Allows for better alignment if you add more elements later */
-    align-items: center; /* Vertically center text */
-    word-break: break-word; /* Prevent long tasks from overflowing */
+    display: flex; /* Use flexbox for alignment */
+    justify-content: space-between; /* Space out name and buttons */
+    align-items: center; /* Vertically center items */
+    gap: 10px; /* Space between name and button group */
 }
 
 li:last-child {
@@ -88,15 +117,94 @@ li:hover {
     background-color: #f9f9f9; /* Slight grey background on hover */
 }
 
+.task-name {
+    flex-grow: 1; /* Allow name to take available space */
+    word-break: break-word; /* Prevent long tasks from overflowing */
+    cursor: default; /* Indicate text is not directly interactive */
+}
+
+.task-buttons {
+    display: flex;
+    gap: 5px; /* Space between buttons within a task */
+    flex-shrink: 0; /* Prevent buttons from shrinking */
+}
+
+/* Individual Task Button Styles */
+li button {
+    padding: 6px 10px; /* Smaller padding for task buttons */
+    font-size: 0.85rem;
+}
+
+.btn-delete {
+    background-color: #dc3545; /* Red */
+    color: white;
+}
+.btn-delete:hover {
+    background-color: #c82333;
+}
+
+.btn-update {
+    background-color: #007bff; /* Blue */
+    color: white;
+}
+.btn-update:hover {
+    background-color: #0056b3;
+}
+
+.btn-toggle {
+    background-color: #6c757d; /* Grey */
+    color: white;
+}
+.btn-toggle:hover {
+    background-color: #5a6268;
+}
+
+
 /* Styling for Completed Tasks */
-.completed {
+.completed .task-name { /* Target only the name span */
     text-decoration: line-through;
     color: #aaa; /* Lighter grey for completed tasks */
     /* Optional: Add a subtle fade */
     /* opacity: 0.7; */
 }
 
-/* Optional: Style completed task text on hover differently */
-.completed:hover {
-   background-color: #f0f0f0; /* Slightly different hover for completed */
+/* Update Task Form Specific Styling */
+.task-form {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+}
+
+.update-form h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    text-align: center;
+}
+
+.update-form input[type="text"] {
+    margin-bottom: 10px;
+    width: calc(100% - 30px); /* Adjust width considering padding */
+}
+
+.update-form button {
+    margin-right: 5px;
+}
+
+.btn-cancel {
+    background-color: #6c757d; /* Grey */
+    color: white;
+}
+.btn-cancel:hover {
+    background-color: #5a6268;
+}
+
+/* No tasks message styling */
+.no-tasks {
+    text-align: center;
+    color: #6c757d;
+    margin-top: 20px;
+    font-style: italic;
 }
