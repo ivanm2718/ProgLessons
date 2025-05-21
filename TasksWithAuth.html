@@ -337,7 +337,6 @@
                 async toggleComplete(task) {
                     if (!this.token) return;
                     this.errorMessage = '';
-                    // Backend gets user_id from token, just send name and new completed status
                     const updatedTaskData = { name: task.name, completed: !task.completed };
                     try {
                         const response = await fetch(`${API_BASE_URL}/tasks/${task.id}`, { 

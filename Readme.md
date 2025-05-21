@@ -1,2 +1,4 @@
 To run this, clone the server, then run: npm install
-Pay attention if settings are configured according to your server (port for example)
+
+//
+If you want to practice, you can for example delete handleLogin() and handleRegister() functions and try to rewrite them
