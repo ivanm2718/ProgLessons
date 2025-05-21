@@ -208,3 +208,95 @@ li button {
     margin-top: 20px;
     font-style: italic;
 }
+
+/* Specijalizirani stilovi za auth-form (login i register) */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.auth-form h2 {
+    text-align: center;
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+/* Poruke o uspjehu i grešci */
+.auth-form .error {
+    color: #dc3545;
+    background-color: #f8d7da;
+    padding: 10px;
+    border-left: 4px solid #dc3545;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.auth-form .success {
+    color: #155724;
+    background-color: #d4edda;
+    padding: 10px;
+    border-left: 4px solid #28a745;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* Grupa unosa */
+.auth-form .form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-form label {
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.auth-form input[type="text"],
+.auth-form input[type="password"] {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.auth-form input[type="text"]:focus,
+.auth-form input[type="password"]:focus {
+    border-color: #42b983;
+    outline: none;
+}
+
+/* Submit gumb već ima stil, ovo je dodatna sigurnost */
+.auth-form button[type="submit"] {
+    align-self: center;
+    width: 100%;
+}
+
+/* Link za prebacivanje između login/registracije */
+.auth-form .switch-auth {
+    text-align: center;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.auth-form .switch-auth button {
+    background: none;
+    border: none;
+    color: #007bff;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+}
+
+.auth-form .switch-auth button:hover {
+    color: #0056b3;
+}

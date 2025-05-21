@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Vue Task App (Login)</title> <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="app">
+
+            <div v-if="currentView === 'login'">
+                <form @submit.prevent="handleLogin" class="auth-form">
+                    <h2>Login</h2>
+                    <div v-if="authError" class="error">{{ authError }}</div>
+                    <div class="form-group">
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" v-model="loginForm.username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" v-model="loginForm.password" required>
+                    </div>
+                    <button type="submit" :disabled="isLoading">{{ isLoading ? 'Logging in...' : 'Login' }}</button>
+                    <div class="switch-auth">
+                        Don't have an account? <button type="button" @click="switchToRegister">Register here</button>
+                    </div>
+                </form>
+            </div>
+
+            <div v-else-if="currentView === 'register'">
+                <form @submit.prevent="handleRegister" class="auth-form">
+                    <h2>Register</h2>
+                    <div v-if="authError" class="error">{{ authError }}</div>
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" v-model="registerForm.username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" v-model="registerForm.password" required>
+                    </div>
+                    <button type="submit" :disabled="isLoading">{{ isLoading ? 'Registering...' : 'Register' }}</button>
+                    <div class="switch-auth">
+                        Already have an account? <button type="button" @click="switchToLogin">Login here</button>
+                    </div>
+                </form>
+            </div>
+
+            <div v-else-if="currentView === 'tasks' && isLoggedIn">
+                <div class="user-info" v-if="currentUser">
+                    Logged in as: <span>{{ currentUser.username }}</span>
+                    <span v-if="currentUser.isAdmin"> (Admin)</span>
+                    <button @click="handleLogout">Logout</button>
+            </div>
+
+            <h1>My Tasks</h1>
+
+            <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
+
+            <form @submit.prevent="addTask">
+                <input type="text" v-model="newTaskName" placeholder="Add a new task (Press Enter to add)">
+                <button type="submit">Add Task</button>
+            </form>
+
+            <div class="controls">
+                <input type="text" v-model="searchTerm" placeholder="Search tasks...">
+                <button @click="toggleFilter">
+                    {{ showOnlyUncompleted ? 'Show All Tasks' : 'Show Uncompleted Tasks' }}
+                </button>
+            </div>
+
+            <div v-if="isLoading" class="loading">Loading tasks...</div>
+
+            <ul v-if="!isLoading && filteredTasks.length > 0">
+                <li v-for="task in filteredTasks" :key="task.id" :class="{ completed: task.completed }">
+                    <span class="task-name">{{ task.name }}</span>
+                    <span v-if="currentUser && currentUser.is_admin" style="font-size: 0.8em; color: grey; margin-left: 5px;">(User: {{ task.user_id }})</span>
+                    <div class="task-buttons">
+                        <button class="btn-toggle" @click="toggleComplete(task)">
+                            {{ task.completed ? 'Mark Uncompleted' : 'Mark Completed' }}
+                        </button>
+                        <button class="btn-update" @click="updateTask(task)">Update</button>
+                        <button class="btn-delete" @click="deleteTask(task.id)">Delete</button>
+                    </div>
+                </li>
+            </ul>
+
+            <p v-if="!isLoading && filteredTasks.length === 0" class="no-tasks">No tasks available.</p>
+
+            <div v-if="showUpdateForm" class="task-form update-form">
+                <h3>Update Task</h3>
+                <input
+                    type="text"
+                    v-model="updatedTaskName"
+                    placeholder="Task Name"
+                    @keydown.enter.prevent="saveUpdatedTask"
+                    ref="updateInput" >
+                <button class="btn-save-update" @click="saveUpdatedTask">Save Update</button>
+                <button class="btn-cancel" @click="cancelUpdate">Cancel</button>
+            </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp, nextTick } = Vue;
+
+        const API_BASE_URL = 'http://localhost:3000';
+        // Removed placeholder USER_ID constant
+
+        createApp({
+            data() {
+                return {
+                    // --- NEW STATE for Auth & Views ---
+                    isLoggedIn: false,
+                    token: null,
+                    currentUser: null, // { userId, username, isAdmin }
+                    currentView: 'login', // Default view
+                    authError: '',
+
+                    // --- NEW Form Models ---
+                    loginForm: { username: '', password: '' },
+                    registerForm: { username: '', password: '' }, // is_admin handled in method if needed
+
+                    // --- Existing Task State ---
+                    tasks: [],
+                    newTaskName: '',
+                    showUpdateForm: false,
+                    currentTaskId: null,
+                    updatedTaskName: '',
+                    showOnlyUncompleted: false,
+                    searchTerm: '',
+                    isLoading: false,
+                    errorMessage: '',
+                };
+            },
+            computed: {
+                // Local filtering/search still works on the tasks fetched from the server
+                filteredTasks() {
+                    let filtered = this.tasks;
+                    if (this.showOnlyUncompleted) {
+                        filtered = filtered.filter(task => !task.completed);
+                    }
+                    if (this.searchTerm.trim() !== '') {
+                        const lowerCaseSearchTerm = this.searchTerm.toLowerCase();
+                        filtered = filtered.filter(task =>
+                            task.name.toLowerCase().includes(lowerCaseSearchTerm)
+                        );
+                    }
+                    return filtered;
+                },
+                // --- NEW: Helper for API auth headers ---
+                authHeaders() {
+                    // Important: Check if token exists before creating headers
+                    if (!this.token) return { 'Content-Type': 'application/json' }; // Default headers if no token
+                    return {
+                        'Authorization': `Bearer ${this.token}`,
+                        'Content-Type': 'application/json'
+                    };
+                }
+            },
+            methods: {
+                // --- NEW: Authentication Methods ---
+                decodeToken(token) {
+                    try {
+                        return jwt_decode(token);
+                    } catch (e) {
+                        console.error("Failed to decode token:", e);
+                        this.handleLogout();
+                        return null;
+                    }
+                },
+                async handleLogin() {
+                    this.authError = ''; 
+                    this.isLoading = true;
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.loginForm)
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || `Login failed (${response.status})`);
+
+                        this.token = data.token;
+                        this.currentUser = this.decodeToken(this.token);
+                        if (this.currentUser) {
+                            this.isLoggedIn = true;
+                            localStorage.setItem('authToken', this.token);
+                            this.currentView = 'tasks';
+                            this.loginForm = { username: '', password: '' };
+                            await this.fetchTasks(); // Fetch tasks *after* successful login
+                        } else {
+                            throw new Error("Received invalid token from server.");
+                        }
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        this.authError = error.message;
+                    } finally { 
+                        this.isLoading = false; 
+                    }
+                },
+                async handleRegister() {
+                    this.authError = ''; 
+                    this.isLoading = true;
+                    // Backend defaults is_admin to false if not provided
+                    const payload = { 
+                        username: this.registerForm.username, 
+                        password: this.registerForm.password 
+                    };
+
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/register`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || `Registration failed (${response.status})`);
+
+                        this.registerForm = { username: '', password: '' };
+                        this.switchToLogin();
+                    } catch (error) { 
+                        console.error('Registration error:', error); 
+                        this.authError = error.message; 
+                    } finally { 
+                        this.isLoading = false; 
+                    }
+                },
+                handleLogout() {
+                    this.token = null; 
+                    this.currentUser = null; 
+                    this.isLoggedIn = false; 
+                    this.tasks = [];
+                    localStorage.removeItem('authToken'); 
+                    this.currentView = 'login';
+                    this.authError = ''; 
+                    console.log("User logged out");
+                },
+                switchToLogin() { 
+                    this.currentView = 'login'; 
+                    this.authError = ''; 
+                },
+                switchToRegister() { 
+                    this.currentView = 'register'; 
+                    this.authError = ''; 
+                },
+                checkForToken() {
+                    const storedToken = localStorage.getItem('authToken');
+                    if (storedToken) {
+                        this.token = storedToken; 
+                        this.currentUser = this.decodeToken(this.token);
+                        if (this.currentUser) { 
+                            this.isLoggedIn = true; 
+                            this.currentView = 'tasks'; 
+                            return true; 
+                        } else { 
+                            this.handleLogout(); 
+                            return false; 
+                        } // Invalid token found
+                    }
+                    this.isLoggedIn = false; 
+                    this.currentView = 'login'; 
+                    return false; // No token found
+                },
+
+                // --- Modified Task Methods (Use Auth Headers, remove user_id from body) ---
+                async fetchTasks() {
+                    if (!this.isLoggedIn || !this.token) return;
+                    this.isLoading = true; 
+                    this.errorMessage = '';
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/tasks`, { headers: this.authHeaders }); // Use computed headers
+                        if (!response.ok) {
+                            if (response.status === 401 || response.status === 403) { 
+                                this.handleLogout();
+                                this.authError = "Session invalid. Please login again.";
+                                return;
+                            }
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        this.tasks = await response.json();
+                    } catch (error) { 
+                        console.error('Error fetching tasks:', error); 
+                        this.errorMessage = 'Failed to load tasks.'; 
+                    } finally { 
+                        this.isLoading = false; 
+                    }
+                },
+                async addTask() {
+                    if (this.newTaskName.trim() === '' || !this.token) return;
+                    this.errorMessage = '';
+                    // Backend gets user_id from token, no need to send it
+                    const newTaskData = { name: this.newTaskName.trim(), completed: false };
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/tasks`, { 
+                            method: 'POST', 
+                            headers: this.authHeaders, 
+                            body: JSON.stringify(newTaskData) 
+                        });
+                        const createdTask = await response.json();
+                        if (!response.ok) { 
+                            if (response.status === 401 || response.status === 403) this.handleLogout(); 
+                            throw new Error(createdTask.error || `Add task failed (${response.status})`); 
+                        }
+                        this.tasks.push(createdTask);
+                        this.newTaskName = '';
+                    } catch (error) { 
+                        console.error('Error adding task:', error); 
+                        this.errorMessage = 'Failed to add task.'; 
+                    }
+                },
+                async deleteTask(taskId) {
+                    if (!this.token) return;
+                    if (this.showUpdateForm && this.currentTaskId === taskId) 
+                        this.cancelUpdate();
+                    this.errorMessage = '';
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, 
+                        { 
+                            method: 'DELETE', 
+                            headers: this.authHeaders 
+                        }); // Pass only headers
+                        if (!response.ok && response.status !== 204) {
+                            if (response.status === 401 || response.status === 403) 
+                                this.handleLogout();
+                            const data = await response.json().catch(() => ({})); 
+                            throw new Error(data.error || `Delete failed (${response.status})`);
+                        }
+                        this.tasks = this.tasks.filter(task => task.id !== taskId);
+                    } catch (error) { 
+                        console.error('Error deleting task:', error); 
+                        this.errorMessage = error.message || 'Failed to delete task.'; 
+                    }
+                },
+                async toggleComplete(task) {
+                    if (!this.token) return;
+                    this.errorMessage = '';
+                    // Backend gets user_id from token, just send name and new completed status
+                    const updatedTaskData = { name: task.name, completed: !task.completed };
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/tasks/${task.id}`, { 
+                            method: 'PUT', 
+                            headers: this.authHeaders, 
+                            body: JSON.stringify(updatedTaskData) 
+                        });
+                        const returnedTask = await response.json();
+                        if (!response.ok) { 
+                            if (response.status === 401 || response.status === 403) this.handleLogout(); 
+                            throw new Error(returnedTask.error || `Update failed (${response.status})`); 
+                        }
+                        const taskIndex = this.tasks.findIndex(t => t.id === task.id);
+                        if (taskIndex !== -1) this.tasks[taskIndex].completed = returnedTask.completed;
+                    } catch (error) { 
+                        console.error('Error toggling task:', error); 
+                        this.errorMessage = error.message || 'Failed to update task status.'; 
+                    }
+                },
+                async saveUpdatedTask() {
+                    if (this.updatedTaskName.trim() === '' || this.currentTaskId === null || !this.token) { 
+                        this.cancelUpdate(); 
+                        return; 
+                    }
+                    this.errorMessage = '';
+                    const originalTask = this.tasks.find(task => task.id === this.currentTaskId);
+                    if (!originalTask) { 
+                        this.cancelUpdate(); 
+                        return; 
+                    }
+                    // Backend gets user_id from token, just send name and original completed status
+                    const updatedData = { 
+                        name: this.updatedTaskName.trim(), 
+                        completed: originalTask.completed, 
+                        user_id: originalTask.user_id 
+                    };
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/tasks/${this.currentTaskId}`, { 
+                            method: 'PUT', 
+                            headers: this.authHeaders, 
+                            body: JSON.stringify(updatedData) 
+                        });
+                        const returnedTask = await response.json();
+                        if (!response.ok) { 
+                            if (response.status === 401 || response.status === 403) this.handleLogout(); 
+                            throw new Error(returnedTask.error || `Update failed (${response.status})`); 
+                        }
+                        const taskIndex = this.tasks.findIndex(task => task.id === this.currentTaskId);
+                        if (taskIndex !== -1) this.tasks[taskIndex].name = returnedTask.name;
+                        this.cancelUpdate();
+                    } catch (error) { 
+                        console.error('Error updating task:', error); 
+                        this.errorMessage = error.message || 'Failed to update task name.'; 
+                    }
+                },
+
+                // --- Existing UI Methods (Unchanged) ---
+                updateTask(task) { 
+                    this.updatedTaskName = task.name; 
+                    this.currentTaskId = task.id; 
+                    this.showUpdateForm = true; 
+                    this.errorMessage = ''; 
+                    nextTick(() => { 
+                        if(this.$refs.updateInput) this.$refs.updateInput.focus(); 
+                    }); 
+                },
+                cancelUpdate() { 
+                    this.showUpdateForm = false; 
+                    this.updatedTaskName = ''; 
+                    this.currentTaskId = null; 
+                },
+                toggleFilter() { 
+                    this.showOnlyUncompleted = !this.showOnlyUncompleted; 
+                },
+                handleEscKey(event) { 
+                    if (event.key === 'Escape' && this.showUpdateForm) this.cancelUpdate(); 
+                }
+            },
+            // --- Modified Lifecycle Hooks ---
+            created() {
+                // Check for existing token when the app instance is created
+                console.log("App created, checking for token...");
+                this.checkForToken(); // Sets initial view based on token status
+            },
+            mounted() {
+                // If check found a valid token, fetch tasks, otherwise user sees login
+                console.log("App mounted. Logged in:", this.isLoggedIn);
+                if (this.isLoggedIn) {
+                    this.fetchTasks();
+                }
+                // Add keyboard listener regardless of login state
+                window.addEventListener('keydown', this.handleEscKey);
+            },
+            beforeUnmount() {
+                // Remove keyboard listener
+                window.removeEventListener('keydown', this.handleEscKey);
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+</html>
